@@ -1,14 +1,11 @@
 pipeline {
     agent any
-    environment {
-        DOCKER_IMAGE = "hexagonal:${env.BUILD_ID}"
-        DOCKER_REPO = "riosberg/hexagonal"
-    }
+
     stages {
         stage('Build Docker Image') {
             steps {
                script {
-                docker.build("riosberg/hexagonal:${env.BUILD_ID}", "-f hexagonal/Dockerfile hexagonal")
+                dockerapp = docker.build("riosberg/hexagonal:${env.BUILD_ID}", "-f hexagonal/Dockerfile hexagonal")
                }
             }
         }
