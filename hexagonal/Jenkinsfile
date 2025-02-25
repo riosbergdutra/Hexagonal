@@ -21,7 +21,7 @@ pipeline {
         }
          stage('Deploy no Kubernets') {
             steps {
-                sh 'kubectl apply -f kubernetes/deployment.yaml'
+                sh 'kubectl apply -f kubernetes/minha-api.yaml'
             }
         }
     }
