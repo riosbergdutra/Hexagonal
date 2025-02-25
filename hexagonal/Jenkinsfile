@@ -8,7 +8,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                script {
-                   dockerapp = docker.build("${DOCKER_REPO}:${env.BUILD_ID}")
+                dockerapp = docker.build("riosberg/hexagonal:${env.BUILD_ID}", "-f docker/Dockerfile .")
                }
             }
         }
