@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  default.conf: |
+    limit_conn_zone $remote_addr zone=addr:10m;
+    limit_req_zone $binary_remote_addr zone=req_limit_per_ip:10m rate=10r/s;
+
+    upstream minha-api {
+        server minha-api-service:8080;  # Aponta para o serviço da API
+    }
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        location / {
+            proxy_pass http://minha-api;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+
+            limit_conn addr 10;
+            limit_req zone=req_limit_per_ip burst=20 nodelay;
+        }
+
+        gzip on;
+        gzip_types text/plain text/css application/javascript application/json;
+        gzip_min_length 1000;
+
+        error_page 502 503 504 /custom_50x.html;
+        location = /custom_50x.html {
+            root /usr/share/nginx/html;
+            internal;
+        }
+    }
