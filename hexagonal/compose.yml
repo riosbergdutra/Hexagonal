@@ -1,3 +1,4 @@
+
 services:
   postgres:
     image: 'postgres:latest'
@@ -20,6 +21,8 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.kube:/root/.kube
+      - ${HOME}/.minikube:/root/.minikube
 
   nginx:
     image: nginx:latest
@@ -28,10 +31,55 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     extra_hosts:
-      - "host.docker.internal:host-gateway"  # Permite que o container acesse o localhost
+      - "host.docker.internal:host-gateway"
     depends_on:
-      - postgres  # Se necessário, ajuste as dependências conforme seu cenário
+      - postgres
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hexagonal
+    ports:
+      - "8082:8082"
+    environment:
+      - spring.application.name=hexagonal
+      - server.port=8082
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+      - SPRING_DATASOURCE_DRIVER-CLASS-NAME=org.h2.Driver
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_DATABASE-PLATFORM=org.hibernate.dialect.H2Dialect
+      - SPRING_JPA_HIBERNATE_DDL-AUTO=create
+      - SPRING_JPA_SHOW-SQL=true
+      # Observabilidade:
+      - management.endpoints.web.exposure.include=*
+      - management.endpoint.health.show-details=always
+      - management.tracing.enabled=true
+      - management.tracing.sampling.probability=1.0
+      - management.zipkin.tracing.endpoint=http://zipkin:9411/api/v2/spans
+      - management.metrics.export.prometheus.enabled=true
+
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - "9411:9411"
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
 
 volumes:
   postgres_data:
   jenkins_home:
+  grafana_data:
